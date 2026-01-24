@@ -41,3 +41,20 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+# SQLite (DO NOT COMMIT DATABASES)
+*.db
+
+# OS
+.DS_Store
+
+

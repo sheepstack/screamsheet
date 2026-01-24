@@ -1,112 +1,406 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  Image,
+} from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Link } from "expo-router";
+import { searchMovies } from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const theme = {
+  colors: {
+    bg: "#000000",
+    panel: "#111111",
+    border: "#2a2a2a",
+    text: "#ffffff",
+    subtext: "#999999",
+    accent: "#d11a2a",
+    chipBg: "#1a1a1a",
+    chipBorder: "#444444",
+  },
+  radius: {
+    sm: 8,
+    md: 12,
+  },
+};
 
-export default function TabTwoScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
+function UserStrip() {
+  const { user, signOut } = useAuth();
+  const displayName = user?.username || user?.email || "";
+  const initials =
+    displayName && displayName.length > 0
+      ? displayName.slice(0, 2).toUpperCase()
+      : "?";
+
+  if (!user) {
+    return (
+      <Link href="/login" asChild>
+        <Pressable
           style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+            marginTop: 10,
+            alignSelf: "flex-start",
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            backgroundColor: "#181818",
+          }}
+        >
+          <Text
+            style={{
+              color: theme.colors.subtext,
+              fontSize: 12,
+              fontWeight: "600",
+            }}
+          >
+            Sign in to save your finds →
+          </Text>
+        </Pressable>
+      </Link>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        marginTop: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        backgroundColor: "#141414",
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: "#222",
+          justifyContent: "center",
+          alignItems: "center",
+          marginRight: 8,
+        }}
+      >
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 12,
+            fontWeight: "700",
+          }}
+        >
+          {initials}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            color: theme.colors.subtext,
+            fontSize: 11,
+          }}
+        >
+          Signed in as
+        </Text>
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 13,
+            fontWeight: "600",
+          }}
+        >
+          {displayName}
+        </Text>
+      </View>
+      <Pressable
+        onPress={signOut}
+        style={{
+          paddingHorizontal: 10,
+          paddingVertical: 6,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          backgroundColor: "#181818",
+        }}
+      >
+        <Text
+          style={{
+            color: theme.colors.subtext,
+            fontSize: 11,
+            fontWeight: "600",
+          }}
+        >
+          Sign out
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-});
+export default function ExploreSearchScreen() {
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function runSearch() {
+    if (!query.trim()) return;
+    setLoading(true);
+    setErr(null);
+    setResults([]);
+
+    try {
+      const data = await searchMovies(query.trim());
+      setResults(data.results || []);
+    } catch (e: any) {
+      setErr("Search failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+  <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+      {/* Header area */}
+      <View
+        style={{
+          backgroundColor: theme.colors.bg,
+          padding: 0,
+          paddingBottom: 12,
+          paddingHorizontal: 16,
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: 1,
+        }}
+      >
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 20,
+            fontWeight: "700",
+          }}
+        >
+          Search
+        </Text>
+        <Text
+          style={{
+            color: theme.colors.subtext,
+            fontSize: 12,
+            lineHeight: 16,
+            marginTop: 4,
+          }}
+        >
+          Find by title, vibe, or subgenre.
+        </Text>
+
+        <UserStrip />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 20,
+          paddingBottom: 40,
+        }}
+        style={{ flex: 1 }}
+      >
+        {/* search box */}
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            backgroundColor: theme.colors.panel,
+            borderRadius: theme.radius.md,
+            padding: 12,
+            marginBottom: 16,
+          }}
+        >
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="e.g. alien, slasher, found footage..."
+            placeholderTextColor={theme.colors.subtext}
+            style={{
+              color: theme.colors.text,
+              fontSize: 14,
+              paddingVertical: 8,
+            }}
+          />
+
+          <Pressable
+            onPress={runSearch}
+            style={{
+              backgroundColor: theme.colors.accent,
+              borderColor: theme.colors.accent,
+              borderWidth: 1,
+              borderRadius: theme.radius.sm,
+              paddingVertical: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: 14,
+                fontWeight: "700",
+              }}
+            >
+              Search
+            </Text>
+          </Pressable>
+
+          {loading ? (
+            <View
+              style={{
+                marginTop: 12,
+                alignItems: "center",
+              }}
+            >
+              <ActivityIndicator color={theme.colors.accent} />
+              <Text
+                style={{
+                  color: theme.colors.subtext,
+                  fontSize: 12,
+                  marginTop: 6,
+                }}
+              >
+                Digging through the tapes...
+              </Text>
+            </View>
+          ) : null}
+
+          {err ? (
+            <Text
+              style={{
+                color: theme.colors.accent,
+                fontSize: 12,
+                marginTop: 8,
+              }}
+            >
+              {err}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* results list */}
+        {results.map((m) => (
+          <Link key={m.slug} href={`/movie/${m.slug}`} asChild>
+            <Pressable
+              style={{
+                flexDirection: "row",
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.panel,
+                borderRadius: theme.radius.md,
+                padding: 12,
+                marginBottom: 12,
+              }}
+            >
+              {m.posterUrl ? (
+                <Image
+                  source={{ uri: m.posterUrl }}
+                  style={{
+                    width: 60,
+                    height: 90,
+                    borderRadius: theme.radius.sm,
+                    backgroundColor: "#222",
+                    marginRight: 12,
+                  }}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 60,
+                    height: 90,
+                    borderRadius: theme.radius.sm,
+                    backgroundColor: "#222",
+                    marginRight: 12,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.subtext,
+                      fontSize: 10,
+                    }}
+                  >
+                    no poster
+                  </Text>
+                </View>
+              )}
+
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 15,
+                    fontWeight: "700",
+                  }}
+                >
+                  {m.title}{" "}
+                  {m.year ? (
+                    <Text
+                      style={{
+                        color: theme.colors.subtext,
+                        fontSize: 13,
+                        fontWeight: "400",
+                      }}
+                    >
+                      ({m.year})
+                    </Text>
+                  ) : null}
+                </Text>
+
+                {m.subgenres && m.subgenres.length ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      marginTop: 6,
+                    }}
+                  >
+                    {m.subgenres.slice(0, 4).map((tag: string) => (
+                      <View
+                        key={tag}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: theme.colors.chipBorder,
+                          backgroundColor: theme.colors.chipBg,
+                          borderRadius: 999,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          marginRight: 6,
+                          marginBottom: 6,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: theme.colors.subtext,
+                            fontSize: 11,
+                          }}
+                        >
+                          {tag}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          </Link>
+        ))}
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+  );
+}
