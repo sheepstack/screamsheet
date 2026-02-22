@@ -4,6 +4,7 @@ import json
 import random
 import hashlib
 import os
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Body
@@ -97,18 +98,39 @@ class ScoreOut(SQLModel):
 # DB ENGINE / SESSION HELPERS
 # ============================================================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///backend/horror.db")
+def _is_railway() -> bool:
+    # Railway typically provides PORT, RAILWAY_* vars
+    return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("PORT") or os.getenv("RAILWAY_PROJECT_ID"))
+
+# Local default: put DB next to this file (works when running locally)
+LOCAL_DEFAULT = str(Path(__file__).parent / "horror.db")
+
+# Railway default: /tmp is writable (but NOT persistent across redeploys)
+DEFAULT_SQLITE_PATH = "/tmp/horror.db" if _is_railway() else LOCAL_DEFAULT
+
+SQLITE_PATH = os.getenv("SQLITE_PATH", DEFAULT_SQLITE_PATH)
+
+# If you later add Railway Postgres, Railway will provide DATABASE_URL automatically.
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{SQLITE_PATH}")
+
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    # Ensure the parent directory exists (for non-/tmp custom paths)
+    try:
+        Path(SQLITE_PATH).parent.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # If this fails due to permissions, /tmp will still work
+        pass
+    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
     DATABASE_URL,
     echo=False,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
 )
-
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
-
 
 def get_session():
     with Session(engine) as session:
