@@ -8,3 +8,4 @@ uvicorn
 typing
 datetime
 uuid
+psycopg2-binary
